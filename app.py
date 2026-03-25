@@ -74,16 +74,25 @@ if st.button("🔄 분석 실행", type="secondary", use_container_width=True):
         ma_results = []
         conv_outputs = []
         
-        # 기본 이평선 계산 (2일선 추가)
-        for n in [2, 3, 5, 8]:
+        # 기본 이평선 계산 (2일선 및 2.5일선 추가)
+        # 2일선: (p0 + p0) / 2
+        # 3일선: (p0 + p0 + D-1) / 3
+        ma2 = p0 
+        ma_results.append({"구분": "2일선", "가격": f"{ma2:,.0f}원", "변동률": "  0.00%"})
+        
+        if valid_count >= 2:
+            ma3 = (p0 * 2 + final_prices[1]) / 3
+            ma2_5 = (ma2 + ma3) / 2
+            diff3 = ((ma3 / p0) - 1) * 100
+            diff2_5 = ((ma2_5 / p0) - 1) * 100
+            ma_results.append({"구분": "2.5일선", "가격": f"{ma2_5:,.0f}원", "변동률": f"{diff2_5:>+7.2f}%"})
+            ma_results.append({"구분": "3일선", "가격": f"{ma3:,.0f}원", "변동률": f"{diff3:>+7.2f}%"})
+
+        for n in [5, 8]:
             if valid_count >= n - 1:
-                if n == 2:
-                    ma_val = (p0 * 2) / 2 # 현재 기준 2일선 (p0, p0)
-                else:
-                    sum_val = p0 * 2
-                    for j in range(1, n - 1): sum_val += final_prices[j]
-                    ma_val = sum_val / n
-                
+                sum_val = p0 * 2
+                for j in range(1, n - 1): sum_val += final_prices[j]
+                ma_val = sum_val / n
                 diff = ((ma_val / p0) - 1) * 100
                 ma_results.append({"구분": f"{n}일선", "가격": f"{ma_val:,.0f}원", "변동률": f"{diff:>+7.2f}%"})
         
@@ -120,7 +129,6 @@ sc_cols = st.columns(3)
 for i in range(1, 4):
     with sc_cols[i-1]:
         st.write(f"**시나리오 {i}**")
-        # 개별 입력창
         s_input = st.number_input(f"예상가 {i}:", value=p0 if p0 > 0 else 0.0, step=100.0, format="%f", key=f"sc_in_{i}")
         
         if st.button(f"🚀 실행 {i}", key=f"sc_btn_{i}", type="primary", use_container_width=True):
@@ -128,13 +136,13 @@ for i in range(1, 4):
                 u_diff = ((s_input / p0) - 1) * 100
                 n_ma2 = (s_input + p0) / 2
                 n_ma3 = (s_input + p0 + final_prices[1]) / 3
-                n_ma2_5 = (n_ma2 + n_ma3) / 2 # 2일선과 3일선의 평균
+                n_ma2_5 = (n_ma2 + n_ma3) / 2 # 2일선과 3일선의 평균 (요청하신 2.5일선)
                 
                 res_text = f"""
                 **[결과 {i}]** {s_input:,.0f}원 ({u_diff:>+4.2f}%)
                 * 2일선: **{n_ma2:,.0f}원**
+                * **2.5일선: {n_ma2_5:,.0f}원**
                 * 3일선: **{n_ma3:,.0f}원**
-                * **평균(2.5): {n_ma2_5:,.0f}원**
                 """
                 st.session_state.scenarios[i] = res_text
             else:
